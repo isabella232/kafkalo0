@@ -4,8 +4,6 @@ import java.net.*;
 
 import com.liquidm.kafkalo0.json.*;
 
-import kafka.cluster.*;
-
 public class KafkaBroker {
 
     private KafkaBrokerInfo info;
@@ -39,9 +37,9 @@ public class KafkaBroker {
         }
     }
 
-    public boolean isSameBroker(Broker leader) {
-        return info.getPort() == leader.port() && isSameHost(leader.host());
-    }
+//    public boolean isSameBroker(Broker leader) {
+//        return info.getPort() == leader.port() && isSameHost(leader.host());
+//    }
 
     public void updateFrom(KafkaBrokerInfo info) {
         this.info.updateFrom(info);
