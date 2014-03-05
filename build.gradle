@@ -1,0 +1,47 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.7
+version = '0.1'
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+    test {
+        java {
+            srcDir 'test'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "http://clojars.org/repo" }
+    maven { url "http://conjars.org/repo" }
+}
+
+
+configurations {
+    deploy {
+        exclude module: 'jms'
+        exclude module: 'jmxtools'
+        exclude module: 'jmxri'
+    }
+
+    compile.extendsFrom deploy
+}
+
+dependencies {
+    compile 'junit:junit:4.11'
+    compile 'org.easymock:easymock:3.2'
+    
+    deploy 'org.apache.curator:curator-framework:2.4.0'
+    deploy 'org.apache.curator:curator-recipes:2.4.0'
+    deploy 'com.google.guava:guava:16.0.1'
+    deploy 'org.apache.kafka:kafka_2.9.2:0.8.0'
+    deploy 'com.fasterxml.jackson.core:jackson-core:2.2.3'
+    deploy 'com.fasterxml.jackson.core:jackson-databind:2.2.3'
+}
