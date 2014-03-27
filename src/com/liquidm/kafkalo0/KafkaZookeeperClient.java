@@ -10,7 +10,6 @@ import org.slf4j.*;
 
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
-import com.google.common.collect.*;
 import com.google.common.eventbus.*;
 import com.liquidm.kafkalo0.events.*;
 import com.liquidm.kafkalo0.json.*;
@@ -31,11 +30,10 @@ public class KafkaZookeeperClient  {
     private ConcurrentMap<Integer, KafkaBroker> brokers = new ConcurrentHashMap<Integer, KafkaBroker>();
     private KafkaTopicInfo currentTopicInfo = new KafkaTopicInfo();
     private Map<String, NodeCache> partitionPathCaches = new HashMap<String, NodeCache>();
-    private BiMap<KafkaPartitionInfo, KafkaBroker> leaders = HashBiMap.create();
+    private Leaderboard leaderboard = new Leaderboard();
     
     // in the case zookeeper notifies us about parition change before the broker addition
     private Map<Integer, KafkaPartitionInfo> pendingLeaders = new HashMap<Integer, KafkaPartitionInfo>();
-
     
     public KafkaZookeeperClient(CuratorFramework curatorClient, EventBus eventBus, String topic) {
         this.curatorClient = curatorClient;
@@ -77,8 +75,7 @@ public class KafkaZookeeperClient  {
                 case CHILD_REMOVED: {
                     KafkaBroker broker = addAndResolveBroker(readBrokerInfo(event));
                     postEvent(new BrokerRemovedEvent(broker));
-                    KafkaPartitionInfo partitionInfo = leaders.inverse().get(broker);
-                    if (partitionInfo != null) {
+                    for (KafkaPartitionInfo partitionInfo : leaderboard.getPartitionsFor(broker)) {
                         loseLeadership(partitionInfo, broker);
                         log.debug("Adding partition in pending broker list: "+ partitionInfo);
                         pendingLeaders.put(partitionInfo.getLeader(), partitionInfo);
@@ -176,7 +173,7 @@ public class KafkaZookeeperClient  {
         if (log.isDebugEnabled()) {
             log.debug("Partition info changed: " + partitionInfo);
         }
-        KafkaBroker leader = leaders.get(partitionInfo);
+        KafkaBroker leader = leaderboard.getBrokerFor(partitionInfo);
         if (leader != null) {
             if (leader.getInfo().getId() != partitionInfo.getLeader()) {
                 loseLeadership(partitionInfo, leader);
@@ -192,12 +189,12 @@ public class KafkaZookeeperClient  {
     }
 
     private void loseLeadership(KafkaPartitionInfo partitionInfo, KafkaBroker broker) {
-        leaders.remove(partitionInfo);
+        leaderboard.remove(partitionInfo);
         postEvent(new LostLeadershipEvent(partitionInfo, broker));
     }
 
     private void gainLeadership(KafkaPartitionInfo partitionInfo, KafkaBroker broker) {
-        leaders.put(partitionInfo, broker);
+        leaderboard.put(broker, partitionInfo);
         postEvent(new GainLeadershipEvent(partitionInfo, broker));
     }
 

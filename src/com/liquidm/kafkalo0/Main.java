@@ -24,13 +24,13 @@ public class Main {
         log.info("Topic: " + topic);
         
         CuratorFramework curatorClient = CuratorFrameworkFactory.newClient(zookeeper, new ExponentialBackoffRetry(1000, 3));
-        curatorClient.start();
         curatorClient.getUnhandledErrorListenable().addListener(new UnhandledErrorListener() {
             @Override
             public void unhandledError(String message, Throwable e) {
                 log.warn(message, e);
             }
         });
+        curatorClient.start();
         EventBus eventBus = new EventBus();
         eventBus.register(new Object() {
             @Subscribe
